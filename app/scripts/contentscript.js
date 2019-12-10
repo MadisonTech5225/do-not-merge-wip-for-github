@@ -1,59 +1,68 @@
-'use strict';
+(() => {
+  'use strict';
 
-(function($){
-  var changeMergeButtonState = function() {
-    var $container = $('#js-repo-pjax-container');
-    var issueTitle = $container.find('.js-issue-title').text();
-    var $buttonMerge = $container.find('.merge-message button[data-details-container]');
-    var disabled = false;
-    var buttonHtml = '';
+  function changeMergeButtonState() {
+    let container = document.querySelector('#js-repo-pjax-container');
+    let issueTitle = container.querySelector('.js-issue-title').textContent;
+    let buttonMerges = container.querySelectorAll('.merge-message button[data-details-container]');
+    let buttonMergeOptions = container.querySelectorAll('.merge-message button[data-details-container] + .select-menu-button');
+    let disabled = false;
+    let buttonHtml = '';
 
     chrome.runtime.sendMessage({from: 'content', subject: 'localStorage'}, function(response){
       if (!response) { return; }
 
-      var localStorage = response.localStorage;
-      if ($('.merge-message .octicon-git-branch-delete').length > 0) {
-        if (localStorage && localStorage.protectedBranch) {
-          disabled = (new RegExp(localStorage.protectedBranch)).test($('.merge-message .css-truncate-target').text());
-        }
-        buttonHtml = '<span class="octicon octicon-git-branch-delete"></span> ' + (disabled ? 'Protected branch' : 'Delete branch');
-      } else {
-        var wipTitleRegex = /(\[wip\]|\[do\s*not\s*merge\]|\[dnm\])/i;
-        var wipTagRegex = /(wip|do\s*not\s*merge|dnm)/i;
+      let localStorage = response.localStorage;
+      const wipTitleRegex = /[\[(^](do\s*n[o']?t\s*merge|wip|dnm)[\]):]/i;
+      const wipTagRegex = /(wip|do\s*not\s*merge|dnm)/i;
 
-        var isWipTitle = wipTitleRegex.test(issueTitle);
-        var isWipTaksList = $container.find('.timeline-comment:first input[type="checkbox"]:not(:checked)').length > 0;
-        var isSquashCommits = false;
-        $container.find('#commits_bucket .commit .commit-title').each(function(i, elem){
-          isSquashCommits = isSquashCommits || $(elem).text().match(/^\s*(squash|fixup)!\s/);
-        });
-
-        var isWipTag = false;
-        $container.find('#discussion_bucket .labels .label').each(function(i, elem) {
-          isWipTag = isWipTag || $(elem).text().match(wipTagRegex);
-        });
-
-        disabled = (isWipTitle || isWipTaksList || isSquashCommits || isWipTag);
-
-        var buttonMessage = '';
-
-        if (localStorage && localStorage.buttonMessage) {
-          buttonMessage = localStorage.buttonMessage;
-        } else {
-          buttonMessage = 'WIP! You can\'t merge!';
-        }
-
-        var $buttonIcon = $buttonMerge.find('.octicon');
-        var buttonIconHtml = $buttonIcon.length > 0 ? $buttonIcon.prop('outerHTML') + ' ' : '';
-
-        buttonHtml = buttonIconHtml + (disabled ? buttonMessage : 'Merge pull request');
+      const isWipTitle = wipTitleRegex.test(issueTitle);
+      const isWipTaskList = container.querySelector('.timeline-comment') && container.querySelector('.timeline-comment').querySelector('input[type="checkbox"]:not(:checked)') !== null;
+      let isSquashCommits = false;
+      for (const commitMessage of container.querySelectorAll('.commit-message')) {
+        isSquashCommits = isSquashCommits || commitMessage.textContent.match(/(squash|fixup)!/);
       }
 
-      $buttonMerge.attr('disabled', disabled);
-      $buttonMerge.html(buttonHtml);
+      let isWipTag = false;
+      for (const label of container.querySelectorAll('.js-issue-labels .IssueLabel')) {
+        isWipTag = isWipTag || label.textContent.match(wipTagRegex);
+      }
+
+      disabled = (isWipTitle || isWipTaskList || isSquashCommits || isWipTag);
+
+      let buttonMessage = '';
+
+      if (localStorage && localStorage.buttonMessage) {
+        buttonMessage = localStorage.buttonMessage;
+      } else {
+        buttonMessage = 'WIP! You can\'t merge!';
+      }
+
+      buttonHtml = disabled ? buttonMessage : 'Merge pull request';
+
+      for (const buttonMerge of buttonMerges) {
+        buttonMerge.disabled = disabled;
+        buttonMerge.innerHTML = buttonHtml;
+      }
+      for (const buttonMergeOption of buttonMergeOptions) {
+        buttonMergeOption.disabled = disabled;
+      }
+
+      // unset variables
+      container = null;
+      issueTitle = null;
+      disabled = null;
+      buttonMerges = null;
+      buttonMergeOptions = null;
+      buttonHtml = null;
+      buttonMessage = null;
+      localStorage = null;
+      isSquashCommits = null;
+      isWipTag = null;
+
+      setTimeout(changeMergeButtonState, 1000);
     });
-  };
+  }
 
   changeMergeButtonState();
-  setInterval(changeMergeButtonState, 1000);
-})(jQuery);
+})();

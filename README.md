@@ -29,7 +29,11 @@ or
 
 ## License
 
-Copyright (c) 2014-2015 sanemat. Licensed under the MIT license.
+Copyright (c) 2014 sanemat. Licensed under the MIT license.
+
+### App Icon
+
+CC BY-ND 3.0 [icons8](https://www.icons8.com)
 
 [travis-url]: https://travis-ci.org/sanemat/do-not-merge-wip-for-github
 [travis-image]: https://travis-ci.org/sanemat/do-not-merge-wip-for-github.svg?branch=master
